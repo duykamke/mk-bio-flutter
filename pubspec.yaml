@@ -1,0 +1,29 @@
+name: epin
+description: >
+  Sample app from "Building Layouts", https://flutter.io/docs/development/ui/layout.
+version: 1.0.0
+
+environment:
+  sdk: '>=2.0.0-dev.68.0 <3.0.0'
+
+dependencies:
+  http: ^0.12.0+2
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^0.1.2
+  flutter_redux: ^0.5.3
+  image_picker: ^0.4.10
+  dotted_border:
+  meta:
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - images/lake.jpg
+    - images/beautiful-color-gradients-backgrounds-047-fly-high.png
+    - images/Logo.png
