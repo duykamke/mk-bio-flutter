@@ -28,6 +28,8 @@ class _RegisterPage extends State<RegisterPage> {
   TextEditingController dateController = new TextEditingController();
   TextEditingController genderController = new TextEditingController();
 
+  Future<File> imageFile;
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +39,7 @@ class _RegisterPage extends State<RegisterPage> {
     DateTime picked = await showDatePicker(
         context: context,
         initialDate: selectedDate,
-        firstDate: DateTime(2016),
+        firstDate: DateTime(1940),
         lastDate: DateTime(2020));
     if (picked != null && picked != selectedDate)
       setState(() {
@@ -248,6 +250,14 @@ class _RegisterPage extends State<RegisterPage> {
       appBar: PreferredSize(
           preferredSize: Size.fromHeight(40),
           child: new AppBar(
+            actions: <Widget>[
+              new GestureDetector(
+                child: new Icon(Icons.exit_to_app),
+                onTap: () {
+                  Navigator.pushNamedAndRemoveUntil(context, "/", (_) => false);
+                },
+              ),
+            ],
             centerTitle: true,
             iconTheme: IconThemeData(color: Colors.blue[900]),
             backgroundColor: Colors.grey[50],
@@ -280,10 +290,10 @@ class _RegisterPage extends State<RegisterPage> {
                     title: new TextFormField(
                       controller: idController,
                       decoration: new InputDecoration(
-                        border: UnderlineInputBorder(),
-                        labelText: "CMND/CCCD",
-                        labelStyle: TextStyle(fontSize: 14),
-                      ),
+                          border: UnderlineInputBorder(),
+                          labelText: "CMND/CCCD",
+                          labelStyle: TextStyle(fontSize: 14),
+                          focusColor: Colors.blue[900]),
                     ))),
             SizedBox(
                 child: new ListTile(
@@ -306,7 +316,6 @@ class _RegisterPage extends State<RegisterPage> {
                       },
                       child: IgnorePointer(
                         child: new TextFormField(
-                          
                           decoration: new InputDecoration(
                               labelText: 'Ngày sinh',
                               labelStyle: TextStyle(fontSize: 14),

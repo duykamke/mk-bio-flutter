@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:epin/page/register/registerpage.dart';
 
 // Uncomment lines 7 and 10 to view the visual layout at runtime.
 
@@ -116,9 +117,8 @@ class MainPage extends StatelessWidget {
                         },
                         child: Text("Đăng nhập",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                                    fontFamily: 'Montserrat')
-                                .copyWith()),
+                            style:
+                                TextStyle(fontFamily: 'Montserrat').copyWith()),
                       ),
                     )),
               ]),
@@ -126,7 +126,6 @@ class MainPage extends StatelessWidget {
   }
 
   Future navigateToRegister(context) async {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => RegisterPage()));
+    Navigator.pushNamedAndRemoveUntil(context, '/identify', (_) => false);
   }
 }
