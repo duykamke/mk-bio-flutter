@@ -5,14 +5,14 @@ part 'enrollment_form.g.dart';
 @JsonSerializable()
 class EnrollmentForm {
   final String idCard;
-  final String birtDate;
+  final String birthDate;
   final String gender;
   final String name;
   final String faceImage;
   final IDDocumentClass idDocument;
   EnrollmentForm(
       {this.idCard,
-      this.birtDate,
+      this.birthDate,
       this.gender,
       this.name,
       this.faceImage,

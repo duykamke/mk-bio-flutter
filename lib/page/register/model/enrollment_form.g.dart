@@ -3,7 +3,7 @@ part of 'enrollment_form.dart';
 EnrollmentForm _$EnrollmentFormFromJson(Map<String, dynamic> json) {
   return EnrollmentForm(
       idCard: json['idCard'] as String,
-      birtDate: json['birtDate'] as String,
+      birthDate: json['birthDate'] as String,
       gender: json['name'] as String,
       name: json['name'] as String,
       faceImage: json['faceImage'] as String,
@@ -16,7 +16,7 @@ EnrollmentForm _$EnrollmentFormFromJson(Map<String, dynamic> json) {
 Map<String, dynamic> _$EnrollmentFormToJson(EnrollmentForm instance) =>
     <String, dynamic>{
       'idCard': instance.idCard,
-      'birtDate': instance.birtDate,
+      'birthDate': instance.birthDate,
       'gender': instance.gender,
       'name': instance.name,
       'faceImage': instance.faceImage,

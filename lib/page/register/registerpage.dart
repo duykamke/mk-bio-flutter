@@ -1,5 +1,5 @@
-import 'package:epin/page/register/model/enrollment_form.dart';
-import 'package:epin/page/register/model/id_document.dart';
+import 'package:mk_bio/page/register/model/enrollment_form.dart';
+import 'package:mk_bio/page/register/model/id_document.dart';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -62,7 +62,7 @@ class _RegisterPage extends State<RegisterPage> {
     return base64Encode(imageBytes);
   }
 
-  Future<Map> _avatarSubmit() async {
+  /*Future<Map> _avatarSubmit() async {
     imageBytes = portraitData.readAsBytesSync();
     base64Image = base64Encode(imageBytes);
 
@@ -92,7 +92,7 @@ class _RegisterPage extends State<RegisterPage> {
     } else {
       throw Exception('empty');
     }
-  }
+  }*/
 
   Future<EnrollmentForm> _enroll() async {
     IDDocumentClass newIDDocument = IDDocumentClass(
@@ -103,7 +103,7 @@ class _RegisterPage extends State<RegisterPage> {
     EnrollmentForm newForm = EnrollmentForm(
       idCard: idController.text,
       name: nameController.text,
-      birtDate: dateController.text,
+      birthDate: dateController.text,
       gender: _currentGender,
       faceImage: convertImageToBase64(portraitData),
       idDocument: newIDDocument,

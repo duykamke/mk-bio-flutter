@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:epin/page/identify/identifypage.dart';
-import 'package:epin/page/mainpage.dart';
-import 'package:epin/page/register/registerpage.dart';
+import 'package:mk_bio/page/identify/identifypage.dart';
+import 'package:mk_bio/page/mainpage.dart';
+import 'package:mk_bio/page/register/registerpage.dart';
 import 'package:flutter/material.dart';
 
 List<CameraDescription> cameras;
