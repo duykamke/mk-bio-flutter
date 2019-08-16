@@ -94,6 +94,11 @@ class _RegisterPage extends State<RegisterPage> {
     }
   }*/
 
+  void printWrapped(String text) {
+    final pattern = new RegExp('.{1,800}'); // 800 is the size of each chunk
+    pattern.allMatches(text).forEach((match) => print(match.group(0)));
+  }
+
   Future<EnrollmentForm> _enroll() async {
     IDDocumentClass newIDDocument = IDDocumentClass(
       frontImage: convertImageToBase64(idFrontData),
@@ -108,6 +113,13 @@ class _RegisterPage extends State<RegisterPage> {
       faceImage: convertImageToBase64(portraitData),
       idDocument: newIDDocument,
     );
+    print(newForm.faceImage);
+
+    print(newForm.idDocument.frontImage);
+
+    print(newForm.idDocument.backImage);
+
+    print(newForm.idDocument.type);
 
     Map<String, String> headers = {
       "content-type": "application/json",
@@ -119,7 +131,7 @@ class _RegisterPage extends State<RegisterPage> {
     String url = 'http://192.168.0.69:15420/api/mobile/biometric/enroll';
 
     final body = json.encode(newForm);
-    print(body);
+
     return http
         .post(Uri.encodeFull(url), headers: headers, body: body)
         .then((http.Response response) {
@@ -171,7 +183,7 @@ class _RegisterPage extends State<RegisterPage> {
       builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.data != null) {
-          idFrontData = snapshot.data;
+          idBackData = snapshot.data;
           return Image.file(
             snapshot.data,
             width: 300,
@@ -201,7 +213,7 @@ class _RegisterPage extends State<RegisterPage> {
       builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
         if (snapshot.connectionState == ConnectionState.done &&
             snapshot.data != null) {
-          idBackData = snapshot.data;
+          idFrontData = snapshot.data;
           return Image.file(
             snapshot.data,
             width: 300,

@@ -5,6 +5,10 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mk_bio/page/identify/model/response_body.dart';
+import 'package:mk_bio/page/identify/model/user_info.dart';
+import 'package:mk_bio/page/identify/usercard.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -33,9 +37,21 @@ class _IdentifyPage extends State<IdentifyPage> {
   List<int> imageBytes;
   String base64Image;
 
+  ScrollController _scrollController = ScrollController();
+
+  Future<List<UserInfo>> usersFound;
+  UserInfo user;
+
+  Future<File> portraitFile;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {}
+    });
+
     controller = CameraController(widget.camera, ResolutionPreset.high);
     availableCameras().then((availableCameras) {
       cameras = availableCameras;
@@ -163,8 +179,16 @@ class _IdentifyPage extends State<IdentifyPage> {
     });
   }
 
-  Future<Map> _portraitSubmit() async {
-    imageBytes = File(imagePath).readAsBytesSync();
+  pickPortraitFromGallery(ImageSource source) {
+    setState(() {
+      portraitFile = ImagePicker.pickImage(source: source);
+      if (portraitFile != null) usersFound = _portraitSubmit();
+    });
+  }
+
+  Future<List<UserInfo>> _portraitSubmit() async {
+    File file = await portraitFile;
+    imageBytes = file.readAsBytesSync();
     base64Image = base64Encode(imageBytes);
 
     Map<String, String> headers = {
@@ -179,19 +203,24 @@ class _IdentifyPage extends State<IdentifyPage> {
     if (base64Image != null) {
       http.Response response =
           await http.post(Uri.encodeFull(url), headers: headers, body: body);
-      if (response.statusCode == 200) {
+      if (ResponseBody.fromJson(json.decode(response.body)).success == true) {
         print(response.body);
-        // If the call to the server was successful, parse the JSON.
+        return ResponseBody.fromJson(json.decode(response.body)).data;
       } else {
-        // If that call was not successful, throw an error.
-        print(response.body);
+        return [];
       }
-
-      Map content = json.decode(response.body);
-      return content;
     } else {
       throw Exception('empty');
     }
+  }
+
+  List<UserInfo> parseJson(List<UserInfo> response) {
+    List<UserInfo> users = new List<UserInfo>();
+    List jsonParsed = json.decode(response.toString());
+    for (int i = 0; i < jsonParsed.length; i++) {
+      users.add(new UserInfo.fromJson(jsonParsed[i]));
+    }
+    return users;
   }
 
   void _showCameraException(CameraException e) {
@@ -210,20 +239,51 @@ class _IdentifyPage extends State<IdentifyPage> {
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size.width;
-
+    var _futureBuilder = new FutureBuilder(
+        future: usersFound,
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          if (snapshot.hasError) return Text('Error: ${snapshot.error}');
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return Container(child: Center(child: CircularProgressIndicator()));
+          if (!snapshot.hasData)
+            return Container(
+                child: Center(
+                    child:
+                        Text('Chụp ảnh chân dung để tìm thông tin cá nhân')));
+          return createMyListView(context, snapshot);
+        });
     return Scaffold(
         appBar: PreferredSize(
             preferredSize: Size.fromHeight(40),
             child: new AppBar(
               automaticallyImplyLeading: false,
+              leading: IconButton(
+                icon: Icon(Icons.exit_to_app),
+                onPressed: () {
+                  Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+                },
+              ),
               actions: <Widget>[
-                new GestureDetector(
-                  child: new Icon(Icons.exit_to_app),
-                  onTap: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                        context, '/', (_) => false);
-                  },
-                ),
+                Container(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                    child: MaterialButton(
+                      color: Colors.blue[900],
+                      textColor: Colors.yellow[600],
+                      splashColor: Colors.yellow[600],
+                      elevation: 8,
+                      shape: BeveledRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/register');
+                      },
+                      child: RichText(
+                          text: TextSpan(
+                              text: 'Đăng ký',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.yellow[600],
+                                  fontWeight: FontWeight.w500))),
+                    )),
               ],
               centerTitle: true,
               iconTheme: IconThemeData(color: Colors.blue[900]),
@@ -299,7 +359,7 @@ class _IdentifyPage extends State<IdentifyPage> {
                               child: new Icon(Icons.photo_camera),
                             ),
                             onPressed: () {
-                              _onCapturePressed();
+                              pickPortraitFromGallery(ImageSource.gallery);
                             })
                       ])),
                 ]);
@@ -308,39 +368,27 @@ class _IdentifyPage extends State<IdentifyPage> {
               }
             },
           ),
-          SizedBox(
-            height: 30,
-          ),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-            RichText(
-              text: TextSpan(
-                  text: 'Số CMND/CCCD',
-                  style: TextStyle(fontSize: 18, color: Colors.blue[900])),
-            ),
-            RichText(
-              text: TextSpan(
-                  text: 'Tên',
-                  style: TextStyle(fontSize: 18, color: Colors.blue[900])),
-            ),
-          ]),
-          SizedBox(
-            height: 30,
-          ),
-          Container(
-              margin: EdgeInsets.symmetric(horizontal: 100),
-              child: MaterialButton(
-                color: Colors.blue[900],
-                textColor: Colors.yellow[600],
-                splashColor: Colors.yellow[600],
-                elevation: 8,
-                shape: BeveledRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/register');
-                },
-                child: const Text("Đăng ký"),
-              ))
+          Expanded(child: _futureBuilder)
         ]));
+  }
+
+  Widget createMyListView(BuildContext context, AsyncSnapshot snapshot) {
+    List<dynamic> values = snapshot.data;
+    if (values.isEmpty) {
+      return Container(
+        child: Center(
+          child: Text('Không tìm thấy kết quả'),
+        ),
+      );
+    }
+    return new ListView.builder(
+      itemCount: values.length,
+      itemBuilder: (BuildContext context, int index) {
+        return UserCard(
+          values[index],
+        );
+      },
+    );
   }
 
   Widget _displayCapturedImage() {
