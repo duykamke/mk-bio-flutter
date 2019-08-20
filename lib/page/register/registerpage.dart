@@ -1,3 +1,4 @@
+import 'package:mk_bio/page/register/model/response_body.dart';
 import 'package:mk_bio/page/register/model/enrollment_form.dart';
 import 'package:mk_bio/page/register/model/id_document.dart';
 
@@ -20,6 +21,13 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPage extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  String _dropdownError;
+  String _portraitError;
+  String _backIDError;
+  String _frontIDError;
+  String _bothIDError;
+
   DateTime selectedDate = DateTime.now();
   String _currentGender;
 
@@ -30,6 +38,7 @@ class _RegisterPage extends State<RegisterPage> {
 
   Future<File> imageFile;
 
+  SnackBar snackBar;
   @override
   void initState() {
     super.initState();
@@ -58,8 +67,11 @@ class _RegisterPage extends State<RegisterPage> {
   String base64Image;
 
   String convertImageToBase64(File fileData) {
-    imageBytes = fileData.readAsBytesSync();
-    return base64Encode(imageBytes);
+    if (fileData != null) {
+      imageBytes = fileData.readAsBytesSync();
+      return base64Encode(imageBytes);
+    } else
+      return '';
   }
 
   /*Future<Map> _avatarSubmit() async {
@@ -99,7 +111,7 @@ class _RegisterPage extends State<RegisterPage> {
     pattern.allMatches(text).forEach((match) => print(match.group(0)));
   }
 
-  Future<EnrollmentForm> _enroll() async {
+  Future<SnackBar> _enroll() async {
     IDDocumentClass newIDDocument = IDDocumentClass(
       frontImage: convertImageToBase64(idFrontData),
       backImage: convertImageToBase64(idBackData),
@@ -113,13 +125,6 @@ class _RegisterPage extends State<RegisterPage> {
       faceImage: convertImageToBase64(portraitData),
       idDocument: newIDDocument,
     );
-    print(newForm.faceImage);
-
-    print(newForm.idDocument.frontImage);
-
-    print(newForm.idDocument.backImage);
-
-    print(newForm.idDocument.type);
 
     Map<String, String> headers = {
       "content-type": "application/json",
@@ -135,15 +140,26 @@ class _RegisterPage extends State<RegisterPage> {
     return http
         .post(Uri.encodeFull(url), headers: headers, body: body)
         .then((http.Response response) {
-      final int statusCode = response.statusCode;
+      var responseBody = ResponseBody.fromJson(json.decode(response.body));
 
-      if (statusCode < 200 || statusCode > 400 || json == null) {
-        throw new Exception("Error while fetching data");
+      if (responseBody.success) {
+        Scaffold.of(context)
+            .showSnackBar(SnackBar(content: Text("Đăng ký thành công")))
+            .closed
+            .then((reason) {
+          // snackbar is now closed
+        });
+      } else {
+        Scaffold.of(context)
+            .showSnackBar(SnackBar(content: Text("Đăng ký thất bại")))
+            .closed
+            .then((reason) {
+          // snackbar is now closed
+        });
       }
+      print(responseBody.success);
 
-      print(response.body);
-
-      return EnrollmentForm.fromJson(json.decode(response.body));
+      return snackBar;
     });
   }
 
@@ -256,23 +272,48 @@ class _RegisterPage extends State<RegisterPage> {
     });
   }
 
+  Widget showIDText() {
+    if (_bothIDError == null) {
+      if (_backIDError == null)
+        return RichText(
+          text: TextSpan(
+              text: 'Tải lên ảnh CMND/CCCD',
+              style: TextStyle(fontSize: 14, color: Colors.black)),
+        );
+      else if (_frontIDError == null)
+        return RichText(
+          text: TextSpan(
+              text: 'Tải lên ảnh CMND/CCCD',
+              style: TextStyle(fontSize: 14, color: Colors.black)),
+        );
+    } else
+      return Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _bothIDError ?? "",
+            style: TextStyle(
+                color: Colors.red[700],
+                fontSize: 12,
+                fontWeight: FontWeight.bold),
+          ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: PreferredSize(
           preferredSize: Size.fromHeight(40),
           child: new AppBar(
-            actions: <Widget>[
-              new GestureDetector(
-                child: new Icon(Icons.exit_to_app),
-                onTap: () {
-                  Navigator.pushNamedAndRemoveUntil(context, "/", (_) => false);
-                },
-              ),
-            ],
             centerTitle: true,
             iconTheme: IconThemeData(color: Colors.blue[900]),
             backgroundColor: Colors.grey[50],
+            leading: IconButton(
+                iconSize: 24.0,
+                icon: Icon(Icons.arrow_back),
+                color: Colors.blue[900],
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/');
+                }),
             title: InkWell(
                 child: Row(children: [
               Image(
@@ -289,180 +330,290 @@ class _RegisterPage extends State<RegisterPage> {
             ])),
           )),
       body: Form(
+          key: _formKey,
           child: Container(
-        margin: EdgeInsets.only(top: 20),
-        padding: EdgeInsets.only(left: 20, right: 20),
-        height: 1000,
-        child: ListView(
-          shrinkWrap: true,
-          children: <Widget>[
-            SizedBox(
-                child: new ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: new TextFormField(
-                      controller: idController,
-                      decoration: new InputDecoration(
-                          border: UnderlineInputBorder(),
-                          labelText: "CMND/CCCD",
-                          labelStyle: TextStyle(fontSize: 14),
-                          focusColor: Colors.blue[900]),
-                    ))),
-            SizedBox(
-                child: new ListTile(
-              leading: const Icon(Icons.perm_identity),
-              title: new TextFormField(
-                controller: nameController,
-                decoration: new InputDecoration(
-                  border: UnderlineInputBorder(),
-                  labelText: "Tên",
-                  labelStyle: TextStyle(fontSize: 14),
-                ),
-              ),
-            )),
-            SizedBox(
-              child: new ListTile(
-                  leading: const Icon(Icons.date_range),
-                  title: new InkWell(
-                      onTap: () {
-                        _selectDate(context);
-                      },
-                      child: IgnorePointer(
-                        child: new TextFormField(
+            margin: EdgeInsets.only(top: 20),
+            padding: EdgeInsets.only(left: 20, right: 20),
+            height: 1000,
+            child: ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                SizedBox(
+                    child: new ListTile(
+                        leading:
+                            Icon(Icons.credit_card, color: Colors.blue[900]),
+                        title: new TextFormField(
+                          validator: (value) {
+                            if (value.isEmpty) {
+                              return 'Xin hãy điền CMND/CCCD';
+                            }
+                            return null;
+                          },
+                          controller: idController,
                           decoration: new InputDecoration(
-                              labelText: 'Ngày sinh',
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: Colors.blue[900]),
+                              ),
+                              border: UnderlineInputBorder(),
+                              labelText: "CMND/CCCD",
                               labelStyle: TextStyle(fontSize: 14),
-                              border: UnderlineInputBorder()),
-                          controller: dateController,
-                        ),
-                      ))),
-            ),
-            SizedBox(
-                child: new ListTile(
-              leading: Icon(Icons.person),
-              title: SizedBox(
-                  child: DropdownButtonFormField<String>(
-                hint: Text('Giới tính'),
-                decoration: InputDecoration.collapsed(hintText: 'Giới tính'),
-                value: _currentGender,
-                items: <String>['Nam', 'Nữ', 'Không xác định']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String newValue) {
-                  setState(() {
-                    _currentGender = newValue;
-                  });
-                },
-              )),
-            )),
-            Container(
-                padding: EdgeInsets.only(left: 10, right: 10),
-                margin: EdgeInsets.only(bottom: 20),
-                child: Container(
-                    child: Column(children: <Widget>[
-                  SizedBox(
-                    height: 10,
+                              focusColor: Colors.blue[900]),
+                        ))),
+                SizedBox(
+                    child: new ListTile(
+                  leading: Icon(Icons.short_text, color: Colors.blue[900]),
+                  title: new TextFormField(
+                    validator: (value) {
+                      if (value.isEmpty) {
+                        return 'Xin hãy điền tên';
+                      }
+                      return null;
+                    },
+                    controller: nameController,
+                    decoration: new InputDecoration(
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blue[900]),
+                      ),
+                      border: UnderlineInputBorder(),
+                      labelText: "Tên",
+                      labelStyle: TextStyle(fontSize: 14),
+                    ),
                   ),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                              text: 'Tải lên ảnh chân dung',
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.black)),
-                        ),
-                        InkWell(
-                            onTap: () {
-                              pickPortraitFromGallery(ImageSource.gallery);
-                            },
-                            child: DottedBorder(
-                                borderType: BorderType.RRect,
-                                padding: EdgeInsets.all(6),
-                                radius: Radius.circular(12),
-                                color: Colors.blue[900],
-                                strokeWidth: 1,
-                                child: Container(
-                                    height: 40,
-                                    width: 40,
-                                    child: showPortrait()))),
-                      ]),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                              text: 'Tải lên ảnh CMND/CCCD',
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.black)),
-                        ),
-                        Column(children: <Widget>[
-                          InkWell(
-                              onTap: () {
-                                pickIDFrontFromGallery(ImageSource.gallery);
-                              },
-                              child: DottedBorder(
-                                  borderType: BorderType.RRect,
-                                  padding: EdgeInsets.all(6),
-                                  radius: Radius.circular(12),
-                                  color: Colors.blue[900],
-                                  strokeWidth: 1,
-                                  child: Container(
-                                      height: 40,
-                                      width: 40,
-                                      child: showIDfront()))),
-                          Container(
-                            margin: EdgeInsets.only(top: 5),
-                            child: Text('Mặt trước'),
-                          )
-                        ]),
-                        Column(children: <Widget>[
-                          InkWell(
-                              onTap: () {
-                                pickIDBackFromGallery(ImageSource.gallery);
-                              },
-                              child: DottedBorder(
-                                  borderType: BorderType.RRect,
-                                  padding: EdgeInsets.all(6),
-                                  radius: Radius.circular(12),
-                                  color: Colors.blue[900],
-                                  strokeWidth: 1,
-                                  child: Container(
-                                      height: 40,
-                                      width: 40,
-                                      child: showIDback()))),
-                          Container(
-                            margin: EdgeInsets.only(top: 5),
-                            child: Text('Mặt sau'),
-                          )
-                        ]),
-                      ]),
-                ]))),
-            Container(
-                margin: EdgeInsets.symmetric(horizontal: 100),
-                child: MaterialButton(
-                  color: Colors.blue[900],
-                  textColor: Colors.yellow[600],
-                  splashColor: Colors.yellow[600],
-                  elevation: 8,
-                  shape: BeveledRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  onPressed: () {
-                    setState(() {
-                      _enroll();
-                    });
-                  },
-                  child: const Text("Đăng ký"),
                 )),
-          ],
-        ),
-      )),
+                SizedBox(
+                  child: new ListTile(
+                      leading: Icon(
+                        Icons.date_range,
+                        color: Colors.blue[900],
+                      ),
+                      title: new InkWell(
+                          onTap: () {
+                            _selectDate(context);
+                          },
+                          child: IgnorePointer(
+                            child: new TextFormField(
+                              validator: (value) {
+                                if (value.isEmpty) {
+                                  return 'Xin hãy điền ngày sinh';
+                                }
+                                return null;
+                              },
+                              decoration: new InputDecoration(
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.blue[900]),
+                                  ),
+                                  labelText: 'Ngày sinh',
+                                  labelStyle: TextStyle(fontSize: 14),
+                                  border: UnderlineInputBorder()),
+                              controller: dateController,
+                            ),
+                          ))),
+                ),
+                SizedBox(
+                    child: new ListTile(
+                        leading: Icon(
+                          Icons.person_outline,
+                          color: Colors.blue[900],
+                        ),
+                        title: Column(children: [
+                          SizedBox(
+                              child: DropdownButtonFormField<String>(
+                            hint: Text('Giới tính'),
+                            decoration: InputDecoration.collapsed(
+                                hintText: 'Giới tính'),
+                            value: _currentGender,
+                            items: <String>['Nam', 'Nữ', 'Không xác định']
+                                .map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  textAlign: TextAlign.left,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  softWrap: true,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String newValue) {
+                              setState(() {
+                                _dropdownError = null;
+                                _currentGender = newValue;
+                              });
+                            },
+                          )),
+                          _dropdownError == null
+                              ? SizedBox.shrink()
+                              : Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _dropdownError ?? "",
+                                    style: TextStyle(
+                                      color: Colors.red[700],
+                                      fontSize: 12,
+                                    ),
+                                  )),
+                        ]))),
+                Container(
+                    padding: EdgeInsets.only(left: 10, right: 10),
+                    margin: EdgeInsets.only(bottom: 20),
+                    child: Container(
+                        child: Column(children: <Widget>[
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _portraitError == null
+                                ? RichText(
+                                    text: TextSpan(
+                                        text: 'Tải lên ảnh chân dung',
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  )
+                                : Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      _portraitError ?? "",
+                                      style: TextStyle(
+                                          color: Colors.red[700],
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
+                                    )),
+                            InkWell(
+                                onTap: () {
+                                  pickPortraitFromGallery(ImageSource.camera);
+                                },
+                                child: DottedBorder(
+                                    borderType: BorderType.RRect,
+                                    padding: EdgeInsets.all(6),
+                                    radius: Radius.circular(12),
+                                    color: Colors.blue[900],
+                                    strokeWidth: 1,
+                                    child: Container(
+                                        height: 40,
+                                        width: 40,
+                                        child: showPortrait()))),
+                          ]),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            showIDText(),
+                            Column(children: <Widget>[
+                              InkWell(
+                                  onTap: () {
+                                    pickIDFrontFromGallery(ImageSource.camera);
+                                  },
+                                  child: DottedBorder(
+                                      borderType: BorderType.RRect,
+                                      padding: EdgeInsets.all(6),
+                                      radius: Radius.circular(12),
+                                      color: Colors.blue[900],
+                                      strokeWidth: 1,
+                                      child: Container(
+                                          height: 40,
+                                          width: 40,
+                                          child: showIDfront()))),
+                              Container(
+                                margin: EdgeInsets.only(top: 5),
+                                child: _frontIDError == null
+                                    ? Text('Mặt trước')
+                                    : Text(
+                                        _frontIDError ?? "",
+                                        style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                              )
+                            ]),
+                            Column(children: <Widget>[
+                              InkWell(
+                                  onTap: () {
+                                    pickIDBackFromGallery(ImageSource.camera);
+                                  },
+                                  child: DottedBorder(
+                                      borderType: BorderType.RRect,
+                                      padding: EdgeInsets.all(6),
+                                      radius: Radius.circular(12),
+                                      color: Colors.blue[900],
+                                      strokeWidth: 1,
+                                      child: Container(
+                                          height: 40,
+                                          width: 40,
+                                          child: showIDback()))),
+                              Container(
+                                margin: EdgeInsets.only(top: 5),
+                                child: _backIDError == null
+                                    ? Text('Mặt sau')
+                                    : Text(
+                                        _backIDError ?? "",
+                                        style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                              )
+                            ]),
+                          ]),
+                    ]))),
+                Container(
+                    margin: EdgeInsets.symmetric(horizontal: 100),
+                    child: MaterialButton(
+                      color: Colors.blue[900],
+                      textColor: Colors.yellow[600],
+                      splashColor: Colors.yellow[600],
+                      elevation: 8,
+                      shape: BeveledRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      onPressed: () {
+                        if (portraitFile != null) _portraitError = null;
+                        if (idBackFile != null) _backIDError = null;
+                        if (idFrontFile != null) _frontIDError = null;
+                        if (idBackFile != null && idFrontFile != null)
+                          _bothIDError = null;
+
+                        bool _isValid = _formKey.currentState.validate();
+                        if (_currentGender == null) {
+                          setState(
+                              () => _dropdownError = "Xin hãy chọn giới tính");
+                          _isValid = false;
+                        }
+                        if (portraitFile == null) {
+                          setState(() =>
+                              _portraitError = "Xin hãy tải lên ảnh chân dung");
+                          _isValid = false;
+                        }
+                        if (idBackFile == null || idFrontFile == null) {
+                          setState(() =>
+                              _bothIDError = "Xin hãy tải lên ảnh CMND/CCCD");
+                          _isValid = false;
+                        }
+                        if (idBackFile == null) {
+                          setState(() => _backIDError = "Mặt sau");
+
+                          _isValid = false;
+                        }
+                        if (idFrontFile == null) {
+                          setState(() => _frontIDError = "Mặt trước");
+
+                          _isValid = false;
+                        }
+
+                        if (_isValid) {
+                          _enroll();
+                        }
+                      },
+                      child: const Text("Đăng ký"),
+                    )),
+              ],
+            ),
+          )),
     );
   }
 }

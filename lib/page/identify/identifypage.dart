@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mk_bio/page/identify/model/response_body.dart';
 import 'package:mk_bio/page/identify/model/user_info.dart';
 import 'package:mk_bio/page/identify/usercard.dart';
@@ -66,9 +65,10 @@ class _IdentifyPage extends State<IdentifyPage> {
     });
   }
 
-  Future<Null> _resizePhoto(String filePath) async {
-    imagePath = filePath;
-    imageCaptured = true;
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   Future _onCameraSwitched(CameraDescription cameraDescription) async {
@@ -156,15 +156,16 @@ class _IdentifyPage extends State<IdentifyPage> {
     _takePicture().then((filePath) async {
       if (mounted) {
         setState(() {
-          _resizePhoto(filePath);
+          imagePath = filePath;
+          imageCaptured = true;
           FlutterNativeImage.cropImage(
               imagePath,
               0,
               0,
               MediaQuery.of(context).size.width.toInt(),
               MediaQuery.of(context).size.width.toInt());
-          _portraitSubmit();
         });
+        usersFound = _portraitSubmit();
 
         if (filePath != null) {
           Fluttertoast.showToast(
@@ -179,16 +180,15 @@ class _IdentifyPage extends State<IdentifyPage> {
     });
   }
 
-  pickPortraitFromGallery(ImageSource source) {
+  /*pickPortraitFromGallery(ImageSource source) {
     setState(() {
       portraitFile = ImagePicker.pickImage(source: source);
       if (portraitFile != null) usersFound = _portraitSubmit();
     });
-  }
+  }*/
 
   Future<List<UserInfo>> _portraitSubmit() async {
-    File file = await portraitFile;
-    imageBytes = file.readAsBytesSync();
+    imageBytes = File(imagePath).readAsBytesSync();
     base64Image = base64Encode(imageBytes);
 
     Map<String, String> headers = {
@@ -207,20 +207,13 @@ class _IdentifyPage extends State<IdentifyPage> {
         print(response.body);
         return ResponseBody.fromJson(json.decode(response.body)).data;
       } else {
+        print(response.body);
+
         return [];
       }
     } else {
       throw Exception('empty');
     }
-  }
-
-  List<UserInfo> parseJson(List<UserInfo> response) {
-    List<UserInfo> users = new List<UserInfo>();
-    List jsonParsed = json.decode(response.toString());
-    for (int i = 0; i < jsonParsed.length; i++) {
-      users.add(new UserInfo.fromJson(jsonParsed[i]));
-    }
-    return users;
   }
 
   void _showCameraException(CameraException e) {
@@ -244,7 +237,11 @@ class _IdentifyPage extends State<IdentifyPage> {
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           if (snapshot.hasError) return Text('Error: ${snapshot.error}');
           if (snapshot.connectionState == ConnectionState.waiting)
-            return Container(child: Center(child: CircularProgressIndicator()));
+            return Container(
+                child: Center(
+                    child: CircularProgressIndicator(
+              valueColor: new AlwaysStoppedAnimation<Color>(Colors.blue[900]),
+            )));
           if (!snapshot.hasData)
             return Container(
                 child: Center(
@@ -257,24 +254,19 @@ class _IdentifyPage extends State<IdentifyPage> {
             preferredSize: Size.fromHeight(40),
             child: new AppBar(
               automaticallyImplyLeading: false,
-              leading: IconButton(
-                icon: Icon(Icons.exit_to_app),
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
-                },
-              ),
               actions: <Widget>[
                 Container(
-                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                    padding: EdgeInsets.all(1),
                     child: MaterialButton(
                       color: Colors.blue[900],
                       textColor: Colors.yellow[600],
                       splashColor: Colors.yellow[600],
                       elevation: 8,
                       shape: BeveledRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius:
+                              BorderRadius.all(Radius.elliptical(2, 6))),
                       onPressed: () {
-                        Navigator.pushNamed(context, '/register');
+                        Navigator.pushReplacementNamed(context, '/register');
                       },
                       child: RichText(
                           text: TextSpan(
@@ -329,39 +321,12 @@ class _IdentifyPage extends State<IdentifyPage> {
                   Positioned(
                       top: size - 110,
                       left: size - 60,
-                      child: Column(children: [
-                        SizedBox(
-                          height: 35,
-                          width: 35,
-                          child: FloatingActionButton(
-                              heroTag: "btnSwitchCamera",
-                              elevation: 8,
-                              backgroundColor: Colors.blue[900],
-                              child: IconTheme(
-                                data: new IconThemeData(
-                                    color: Colors.yellow[600], size: 20),
-                                child: new Icon(Icons.switch_camera),
-                              ),
-                              onPressed: () {
-                                _onSwitchCamera();
-                              }),
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        FloatingActionButton(
-                            heroTag: "btnCameraCapture",
-                            elevation: 8,
-                            backgroundColor: Colors.blue[900],
-                            child: IconTheme(
-                              data: new IconThemeData(
-                                  color: Colors.yellow[600], size: 35),
-                              child: new Icon(Icons.photo_camera),
-                            ),
-                            onPressed: () {
-                              pickPortraitFromGallery(ImageSource.gallery);
-                            })
-                      ])),
+                      child: createCameraButton()),
+                  Positioned.fill(
+                      child: Align(
+                        child: _retakePhoto(),
+                        alignment: Alignment.bottomCenter,
+                      ))
                 ]);
               } else {
                 return Container();
@@ -372,14 +337,54 @@ class _IdentifyPage extends State<IdentifyPage> {
         ]));
   }
 
+  Widget createCameraButton() {
+    if (imageCaptured == true) {
+      return Container();
+    } else
+      return Column(children: [
+        SizedBox(
+          height: 35,
+          width: 35,
+          child: FloatingActionButton(
+              heroTag: "btnSwitchCamera",
+              elevation: 8,
+              backgroundColor: Colors.blue[900],
+              child: IconTheme(
+                data: new IconThemeData(color: Colors.yellow[600], size: 20),
+                child: new Icon(Icons.switch_camera),
+              ),
+              onPressed: () {
+                _onSwitchCamera();
+              }),
+        ),
+        SizedBox(
+          height: 10,
+        ),
+        FloatingActionButton(
+            heroTag: "btnCameraCapture",
+            elevation: 8,
+            backgroundColor: Colors.blue[900],
+            child: IconTheme(
+              data: new IconThemeData(color: Colors.yellow[600], size: 35),
+              child: new Icon(Icons.photo_camera),
+            ),
+            onPressed: () {
+              _onCapturePressed();
+            })
+      ]);
+  }
+
   Widget createMyListView(BuildContext context, AsyncSnapshot snapshot) {
     List<dynamic> values = snapshot.data;
     if (values.isEmpty) {
-      return Container(
-        child: Center(
-          child: Text('Không tìm thấy kết quả'),
+      return Column(children: [
+        Container(
+          margin: EdgeInsets.only(top: 10),
+          child: Center(
+            child: Text('Không tìm thấy kết quả'),
+          ),
         ),
-      );
+      ]);
     }
     return new ListView.builder(
       itemCount: values.length,
@@ -389,6 +394,27 @@ class _IdentifyPage extends State<IdentifyPage> {
         );
       },
     );
+  }
+
+  Widget _retakePhoto() {
+    if (imageCaptured == true) {
+      return Container(
+          child: MaterialButton(
+            color: Colors.blue[900],
+            textColor: Colors.yellow[600],
+            splashColor: Colors.yellow[600],
+            elevation: 8,
+            shape:
+                BeveledRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            onPressed: () {
+              setState(() {
+                imageCaptured = false;
+              });
+            },
+            child: const Text("Chụp lại"),
+          ));
+    } else
+      return Container();
   }
 
   Widget _displayCapturedImage() {

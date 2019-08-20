@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 
 // Uncomment lines 7 and 10 to view the visual layout at runtime.
 
-void main() {
-  runApp(App());
-}
+
 
 class App extends StatelessWidget {
   @override
