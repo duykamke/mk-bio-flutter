@@ -28,7 +28,7 @@ class _RegisterPage extends State<RegisterPage> {
   String _frontIDError;
   String _bothIDError;
 
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDate = DateTime(2000);
   String _currentGender;
 
   TextEditingController idController = new TextEditingController();
@@ -39,6 +39,7 @@ class _RegisterPage extends State<RegisterPage> {
   Future<File> imageFile;
 
   SnackBar snackBar;
+
   @override
   void initState() {
     super.initState();
@@ -286,7 +287,7 @@ class _RegisterPage extends State<RegisterPage> {
               text: 'Tải lên ảnh CMND/CCCD',
               style: TextStyle(fontSize: 14, color: Colors.black)),
         );
-    } else
+    } else{
       return Align(
           alignment: Alignment.centerLeft,
           child: Text(
@@ -296,6 +297,8 @@ class _RegisterPage extends State<RegisterPage> {
                 fontSize: 12,
                 fontWeight: FontWeight.bold),
           ));
+    }
+    return Container();
   }
 
   @override
@@ -575,7 +578,7 @@ class _RegisterPage extends State<RegisterPage> {
                         if (portraitFile != null) _portraitError = null;
                         if (idBackFile != null) _backIDError = null;
                         if (idFrontFile != null) _frontIDError = null;
-                        if (idBackFile != null && idFrontFile != null)
+                        if (idBackFile != null || idFrontFile != null)
                           _bothIDError = null;
 
                         bool _isValid = _formKey.currentState.validate();
